@@ -5,7 +5,6 @@ import (
 	"cloud.google.com/go/storage"
 	"encoding/base64"
 	"errors"
-	"flag"
 	"fmt"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
@@ -15,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 const (
@@ -161,77 +161,88 @@ func (c *CLI) Put(encryptPath string) error {
 	return nil
 }
 
-func (c *CLI) Run(args []string) int {
-	var version bool
-	var list bool
-	var get bool
-	var put bool
-
-	var projectId string
-	var location string
-	var keyRing string
-	var keyName string
-	var keyBucket string
-	var decryptPath string
-	var encryptPath string
-
-	flags := flag.NewFlagSet("cloudkms", flag.ContinueOnError)
-	flags.SetOutput(c.errStream)
-	flags.BoolVar(&version, "version", false, "Print version information and quit")
-	flags.BoolVar(&list, "list", false, "Show key file list")
-	flags.BoolVar(&get, "get", false, "")
-	flags.BoolVar(&put, "put", false, "")
-	flags.StringVar(&projectId, "project_id", "", "Specific GCP Project ID")
-	flags.StringVar(&location, "location", "asia-northeast1", "")
-	flags.StringVar(&keyRing, "keyring", "", "")
-	flags.StringVar(&keyName, "keyname", "", "")
-	flags.StringVar(&keyBucket, "key_bucket", "", "")
-	flags.StringVar(&decryptPath, "decrypt_path", "", "")
-	flags.StringVar(&encryptPath, "encrypt_path", "", "")
-
-	if err := flags.Parse(args[1:]); err != nil {
-		return ExitCodeError
-	}
-
-	if version {
-		fmt.Fprintf(c.errStream, "cloudkms %s\n", Version)
-		return ExitCodeOK
-	}
-
+func (c *CLI) setup(bucket string, keyInfo KeyInfo) error {
 	ctx := context.Background()
-	bucket, err := getGCSBucket(ctx, keyBucket)
+	gcsBucket, err := getGCSBucket(ctx, bucket)
 	if err != nil {
-		fmt.Fprintf(c.errStream, err.Error())
-		return ExitCodeError
-	}
-	keyInfo := KeyInfo{
-		ProjectId: projectId,
-		Location:  location,
-		KeyRing:   keyRing,
-		KeyName:   keyName,
+		return err
 	}
 	c.context = ctx
-	c.bucket = bucket
+	c.bucket = gcsBucket
 	c.keyInfo = keyInfo
 
-	if list {
-		err := c.List()
+	return nil
+}
+
+func (c *CLI) Run(args []string) int {
+	app := kingpin.New("cloudkms", "GCP Cloud KMS Get/Put Command")
+
+	versionCmd := app.Command("version", "Print version")
+	// list
+	listCmd := app.Command("list", "Output key files")
+	listBucket := listCmd.Flag("bucket", "GCS Bucket").String()
+	// get
+	getCmd    := app.Command("get", "Get key file")
+	getBucket    := getCmd.Flag("bucket", "GCS Bucket").String()
+	getProjectId := getCmd.Flag("project_id", "GCS Project").String()
+	getLocation  := getCmd.Flag("location", "GCS KMS Location").Default("asia-northeast1").String()
+	getKeyring   := getCmd.Flag("keyring", "GCS KMS Keyring").String()
+	getKeyname   := getCmd.Flag("keyname", "GCS KMS Keyname").String()
+	getPath      := getCmd.Flag("path", "key file path").String()
+	// put
+	putCmd    := app.Command("put", "Put key file")
+	putBucket     := putCmd.Flag("bucket", "GCS Bucket").String()
+	putProjectId  := putCmd.Flag("project_id", "GCS Project").String()
+	putLocation   := putCmd.Flag("location", "GCS KMS Location").Default("asia-northeast1").String()
+	putKeyring    := putCmd.Flag("keyring", "GCS KMS Keyring").String()
+	putKeyname    := putCmd.Flag("keyname", "GCS KMS Keyname").String()
+	putPath       := putCmd.Flag("path", "key file path").String()
+
+	switch kingpin.MustParse(app.Parse(args[1:])) {
+	case versionCmd.FullCommand():
+		fmt.Fprintf(c.errStream, "cloudkms %s\n", Version)
+	case listCmd.FullCommand():
+		err := c.setup(*listBucket, KeyInfo{})
 		if err != nil {
 			fmt.Fprintf(c.errStream, err.Error())
 			return ExitCodeError
 		}
-	}
 
-	if get {
-		err := c.Get(decryptPath)
+		err = c.List()
 		if err != nil {
 			fmt.Fprintf(c.errStream, err.Error())
 			return ExitCodeError
 		}
-	}
-
-	if put {
-		err := c.Put(encryptPath)
+	case getCmd.FullCommand():
+		keyInfo := KeyInfo{
+			ProjectId: *getProjectId,
+			Location:  *getLocation,
+			KeyRing:   *getKeyring,
+			KeyName:   *getKeyname,
+		}
+		err := c.setup(*getBucket, keyInfo)
+		if err != nil {
+			fmt.Fprintf(c.errStream, err.Error())
+			return ExitCodeError
+		}
+		err = c.Get(*getPath)
+		if err != nil {
+			fmt.Fprintf(c.errStream, err.Error())
+			return ExitCodeError
+		}
+	case putCmd.FullCommand():
+		keyInfo := KeyInfo{
+			ProjectId: *putProjectId,
+			Location:  *putLocation,
+			KeyRing:   *putKeyring,
+			KeyName:   *putKeyname,
+		}
+		err := c.setup(*putBucket, keyInfo)
+		if err != nil {
+			fmt.Fprintf(c.errStream, err.Error())
+			return ExitCodeError
+		}
+		err = c.Put(*putPath)
 		if err != nil {
 			fmt.Fprintf(c.errStream, err.Error())
 			return ExitCodeError
