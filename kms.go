@@ -119,10 +119,53 @@ func (c *CLI) Get(decryptPath string) error {
 	return nil
 }
 
+func (c *CLI) Put(encryptPath string) error {
+	file, err := os.Open(encryptPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(file); err != nil {
+		return err
+	}
+
+	plaintext := buf.Bytes()
+
+	kmsService, err := getKMSService(c.context)
+	if err != nil {
+		return err
+	}
+
+	parentName := fmt.Sprintf("projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s", c.keyInfo.ProjectId, c.keyInfo.Location, c.keyInfo.KeyRing, c.keyInfo.KeyName)
+	req := &kms.EncryptRequest{
+		Plaintext: base64.StdEncoding.EncodeToString(plaintext),
+	}
+	resp, err := kmsService.Projects.Locations.KeyRings.CryptoKeys.Encrypt(parentName, req).Do()
+	if err != nil {
+		return err
+	}
+
+	filename := filepath.Base(encryptPath)
+
+	w := c.bucket.Object(filename + ".encrypted").NewWriter(c.context)
+	defer w.Close()
+
+	_, err = w.Write([]byte(resp.Ciphertext))
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(c.outStream, "Upload %s\n", filename)
+
+	return nil
+}
+
 func (c *CLI) Run(args []string) int {
 	var version bool
 	var list bool
 	var get bool
+	var put bool
 
 	var projectId string
 	var location string
@@ -130,18 +173,21 @@ func (c *CLI) Run(args []string) int {
 	var keyName string
 	var keyBucket string
 	var decryptPath string
+	var encryptPath string
 
 	flags := flag.NewFlagSet("cloudkms", flag.ContinueOnError)
 	flags.SetOutput(c.errStream)
 	flags.BoolVar(&version, "version", false, "Print version information and quit")
 	flags.BoolVar(&list, "list", false, "Show key file list")
 	flags.BoolVar(&get, "get", false, "")
+	flags.BoolVar(&put, "put", false, "")
 	flags.StringVar(&projectId, "project_id", "", "Specific GCP Project ID")
 	flags.StringVar(&location, "location", "asia-northeast1", "")
 	flags.StringVar(&keyRing, "keyring", "", "")
 	flags.StringVar(&keyName, "keyname", "", "")
 	flags.StringVar(&keyBucket, "key_bucket", "", "")
 	flags.StringVar(&decryptPath, "decrypt_path", "", "")
+	flags.StringVar(&encryptPath, "encrypt_path", "", "")
 
 	if err := flags.Parse(args[1:]); err != nil {
 		return ExitCodeError
@@ -178,6 +224,14 @@ func (c *CLI) Run(args []string) int {
 
 	if get {
 		err := c.Get(decryptPath)
+		if err != nil {
+			fmt.Fprintf(c.errStream, err.Error())
+			return ExitCodeError
+		}
+	}
+
+	if put {
+		err := c.Put(encryptPath)
 		if err != nil {
 			fmt.Fprintf(c.errStream, err.Error())
 			return ExitCodeError
