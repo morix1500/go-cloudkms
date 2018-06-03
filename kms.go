@@ -195,11 +195,21 @@ func (c *CLI) Run(args []string) int {
 		location = "global"
 	}
 
-	bucketDesc := "Specify the GCS bucket that stores the encryption key"
-	projectIdDesc := "GCP Project ID"
-	locationDesc := "Region that stored KMS Keyring"
-	keyringDesc := "KMS Keyring"
-	keynameDesc := "KMS keyring Keyname"
+	bucketDesc := `Specify the GCS bucket that stores the encryption key.
+Configurable with environment variable: KMS_GCS_BUCKET
+`
+	projectIdDesc := `GCP Project ID.
+Configurable with environment variable: KMS_PROJECT
+`
+	locationDesc := `Region that stored KMS Keyring.
+Configurable with environment variable: KMS_LOCATION
+`
+	keyringDesc := `KMS Keyring.
+Configurable with environment variable: KMS_KEYRING
+`
+	keynameDesc := `KMS keyring Keyname.
+Configurable with environment variable: KMS_KEYNAME
+`
 	pathDesc := "Name of the saved encryption key"
 
 	versionCmd := app.Command("version", "Print version")
