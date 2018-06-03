@@ -10,11 +10,11 @@ import (
 	"golang.org/x/oauth2/google"
 	kms "google.golang.org/api/cloudkms/v1"
 	"google.golang.org/api/iterator"
+	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 const (
@@ -50,7 +50,7 @@ func getGCSBucket(ctx context.Context, bucketName string) (*storage.BucketHandle
 }
 
 func (c *CLI) List() error {
-	query   := storage.Query{ Prefix: GCS_KEY_PREFIX }
+	query := storage.Query{Prefix: GCS_KEY_PREFIX}
 	objects := c.bucket.Objects(c.context, &query)
 	cnt := 0
 
@@ -63,7 +63,7 @@ func (c *CLI) List() error {
 			return err
 		}
 		filename := strings.Replace(objAttrs.Name, FILE_SUFFIX, "", -1)
-		filename  = strings.Replace(filename, GCS_KEY_PREFIX + "/", "",  -1)
+		filename = strings.Replace(filename, GCS_KEY_PREFIX+"/", "", -1)
 		fmt.Fprintf(c.outStream, "%s\n", filename)
 		cnt++
 	}
@@ -191,21 +191,21 @@ func (c *CLI) Run(args []string) int {
 	listCmd := app.Command("list", "Output key files")
 	listBucket := listCmd.Flag("bucket", "GCS Bucket").String()
 	// get
-	getCmd    := app.Command("get", "Get key file")
-	getBucket    := getCmd.Flag("bucket", "GCS Bucket").String()
+	getCmd := app.Command("get", "Get key file")
+	getBucket := getCmd.Flag("bucket", "GCS Bucket").String()
 	getProjectId := getCmd.Flag("project_id", "GCS Project").String()
-	getLocation  := getCmd.Flag("location", "GCS KMS Location").Default("asia-northeast1").String()
-	getKeyring   := getCmd.Flag("keyring", "GCS KMS Keyring").String()
-	getKeyname   := getCmd.Flag("keyname", "GCS KMS Keyname").String()
-	getPath      := getCmd.Flag("path", "key file path").String()
+	getLocation := getCmd.Flag("location", "GCS KMS Location").Default("asia-northeast1").String()
+	getKeyring := getCmd.Flag("keyring", "GCS KMS Keyring").String()
+	getKeyname := getCmd.Flag("keyname", "GCS KMS Keyname").String()
+	getPath := getCmd.Flag("path", "key file path").String()
 	// put
-	putCmd    := app.Command("put", "Put key file")
-	putBucket     := putCmd.Flag("bucket", "GCS Bucket").String()
-	putProjectId  := putCmd.Flag("project_id", "GCS Project").String()
-	putLocation   := putCmd.Flag("location", "GCS KMS Location").Default("asia-northeast1").String()
-	putKeyring    := putCmd.Flag("keyring", "GCS KMS Keyring").String()
-	putKeyname    := putCmd.Flag("keyname", "GCS KMS Keyname").String()
-	putPath       := putCmd.Flag("path", "key file path").String()
+	putCmd := app.Command("put", "Put key file")
+	putBucket := putCmd.Flag("bucket", "GCS Bucket").String()
+	putProjectId := putCmd.Flag("project_id", "GCS Project").String()
+	putLocation := putCmd.Flag("location", "GCS KMS Location").Default("asia-northeast1").String()
+	putKeyring := putCmd.Flag("keyring", "GCS KMS Keyring").String()
+	putKeyname := putCmd.Flag("keyname", "GCS KMS Keyname").String()
+	putPath := putCmd.Flag("path", "key file path").String()
 
 	var err error
 
@@ -214,10 +214,14 @@ func (c *CLI) Run(args []string) int {
 		fmt.Fprintf(c.errStream, "cloudkms %s\n", Version)
 	case listCmd.FullCommand():
 		err = c.setup(*listBucket, KeyInfo{})
-		if err != nil { break }
+		if err != nil {
+			break
+		}
 
 		err = c.List()
-		if err != nil { break }
+		if err != nil {
+			break
+		}
 
 	case getCmd.FullCommand():
 		keyInfo := KeyInfo{
@@ -227,9 +231,13 @@ func (c *CLI) Run(args []string) int {
 			KeyName:   *getKeyname,
 		}
 		err = c.setup(*getBucket, keyInfo)
-		if err != nil { break }
+		if err != nil {
+			break
+		}
 		err = c.Get(*getPath)
-		if err != nil { break }
+		if err != nil {
+			break
+		}
 
 	case putCmd.FullCommand():
 		keyInfo := KeyInfo{
@@ -239,9 +247,13 @@ func (c *CLI) Run(args []string) int {
 			KeyName:   *putKeyname,
 		}
 		err = c.setup(*putBucket, keyInfo)
-		if err != nil { break }
+		if err != nil {
+			break
+		}
 		err = c.Put(*putPath)
-		if err != nil { break }
+		if err != nil {
+			break
+		}
 	}
 
 	if err != nil {
