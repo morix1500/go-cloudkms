@@ -36,6 +36,11 @@ type KeyInfo struct {
 	KeyName   string
 }
 
+const (
+	FILE_SUFFIX    string = ".encrypted"
+	GCS_KEY_PREFIX string = "kms-keys"
+)
+
 func getGCSBucket(ctx context.Context, bucketName string) (*storage.BucketHandle, error) {
 	cli, err := storage.NewClient(ctx)
 	if err != nil {
@@ -45,7 +50,8 @@ func getGCSBucket(ctx context.Context, bucketName string) (*storage.BucketHandle
 }
 
 func (c *CLI) List() error {
-	objects := c.bucket.Objects(c.context, nil)
+	query   := storage.Query{ Prefix: GCS_KEY_PREFIX }
+	objects := c.bucket.Objects(c.context, &query)
 	cnt := 0
 
 	for {
@@ -56,13 +62,14 @@ func (c *CLI) List() error {
 		if err != nil {
 			return err
 		}
-		filename := strings.Replace(objAttrs.Name, ".encrypted", "", -1)
+		filename := strings.Replace(objAttrs.Name, FILE_SUFFIX, "", -1)
+		filename  = strings.Replace(filename, GCS_KEY_PREFIX + "/", "",  -1)
 		fmt.Fprintf(c.outStream, "%s\n", filename)
 		cnt++
 	}
 
 	if cnt == 0 {
-		return errors.New("The key does not exist")
+		return errors.New("File does not exists\n")
 	}
 
 	return nil
@@ -78,7 +85,8 @@ func getKMSService(ctx context.Context) (*kms.Service, error) {
 }
 
 func (c *CLI) Get(decryptPath string) error {
-	obj, err := c.bucket.Object(decryptPath + ".encrypted").NewReader(c.context)
+	path := fmt.Sprintf("%s/%s%s", GCS_KEY_PREFIX, decryptPath, FILE_SUFFIX)
+	obj, err := c.bucket.Object(path).NewReader(c.context)
 	if err != nil {
 		return err
 	}
@@ -149,7 +157,8 @@ func (c *CLI) Put(encryptPath string) error {
 
 	filename := filepath.Base(encryptPath)
 
-	w := c.bucket.Object(filename + ".encrypted").NewWriter(c.context)
+	path := fmt.Sprintf("%s/%s%s", GCS_KEY_PREFIX, filename, FILE_SUFFIX)
+	w := c.bucket.Object(path).NewWriter(c.context)
 	defer w.Close()
 
 	_, err = w.Write([]byte(resp.Ciphertext))
@@ -204,7 +213,7 @@ func (c *CLI) Run(args []string) int {
 	case versionCmd.FullCommand():
 		fmt.Fprintf(c.errStream, "cloudkms %s\n", Version)
 	case listCmd.FullCommand():
-		err := c.setup(*listBucket, KeyInfo{})
+		err = c.setup(*listBucket, KeyInfo{})
 		if err != nil { break }
 
 		err = c.List()
@@ -217,7 +226,7 @@ func (c *CLI) Run(args []string) int {
 			KeyRing:   *getKeyring,
 			KeyName:   *getKeyname,
 		}
-		err := c.setup(*getBucket, keyInfo)
+		err = c.setup(*getBucket, keyInfo)
 		if err != nil { break }
 		err = c.Get(*getPath)
 		if err != nil { break }
@@ -229,7 +238,7 @@ func (c *CLI) Run(args []string) int {
 			KeyRing:   *putKeyring,
 			KeyName:   *putKeyname,
 		}
-		err := c.setup(*putBucket, keyInfo)
+		err = c.setup(*putBucket, keyInfo)
 		if err != nil { break }
 		err = c.Put(*putPath)
 		if err != nil { break }

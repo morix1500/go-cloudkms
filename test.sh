@@ -5,6 +5,7 @@ PROJECT=$(gcloud config get-value project -q)
 LOCATION=asia-northeast1
 KEYRING=test
 KEYNAME=testkey
+GCS_KEY_PREFIX=kms-keys
 API_KEY=$(gcloud auth print-access-token)
 
 function encrypt() {
@@ -36,6 +37,4 @@ encrypt hoge.txt 2>&1 /dev/null
 encrypt fuga.txt 2>&1 /dev/null
 encrypt piyo.txt 2>&1 /dev/null
 
-gsutil cp *.encrypted gs://${TEST_BUCKET}/
-
-rm -f *.txt*
+gsutil cp *.encrypted gs://${TEST_BUCKET}/${GCS_KEY_PREFIX}
