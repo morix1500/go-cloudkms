@@ -69,7 +69,7 @@ func (c *CLI) List() error {
 	}
 
 	if cnt == 0 {
-		return errors.New("File does not exists\n")
+		return errors.New("File does not exists")
 	}
 
 	return nil
@@ -186,26 +186,35 @@ func (c *CLI) setup(bucket string, keyInfo KeyInfo) error {
 func (c *CLI) Run(args []string) int {
 	app := kingpin.New("cloudkms", "GCP Cloud KMS Get/Put Command")
 
+	bucket := os.Getenv("KMS_GCS_BUCKET")
+	projectId := os.Getenv("KMS_PROJECT")
+	keyring := os.Getenv("KMS_KEYRING")
+	keyname := os.Getenv("KMS_KEYNAME")
+	location := os.Getenv("KMS_LOCATION")
+	if location == "" {
+		location = "global"
+	}
+
 	versionCmd := app.Command("version", "Print version")
 	// list
 	listCmd := app.Command("list", "Output key files")
-	listBucket := listCmd.Flag("bucket", "GCS Bucket").String()
+	listBucket := listCmd.Flag("bucket", "GCS Bucket").Default(bucket).String()
 	// get
 	getCmd := app.Command("get", "Get key file")
-	getBucket := getCmd.Flag("bucket", "GCS Bucket").String()
-	getProjectId := getCmd.Flag("project_id", "GCS Project").String()
-	getLocation := getCmd.Flag("location", "GCS KMS Location").Default("asia-northeast1").String()
-	getKeyring := getCmd.Flag("keyring", "GCS KMS Keyring").String()
-	getKeyname := getCmd.Flag("keyname", "GCS KMS Keyname").String()
-	getPath := getCmd.Flag("path", "key file path").String()
+	getBucket := getCmd.Flag("bucket", "GCS Bucket").Default(bucket).String()
+	getProjectId := getCmd.Flag("project_id", "GCS Project").Default(projectId).String()
+	getLocation := getCmd.Flag("location", "GCS KMS Location").Default(location).String()
+	getKeyring := getCmd.Flag("keyring", "GCS KMS Keyring").Default(keyring).String()
+	getKeyname := getCmd.Flag("keyname", "GCS KMS Keyname").Default(keyname).String()
+	getPath := getCmd.Arg("path", "key file path").Required().String()
 	// put
 	putCmd := app.Command("put", "Put key file")
-	putBucket := putCmd.Flag("bucket", "GCS Bucket").String()
-	putProjectId := putCmd.Flag("project_id", "GCS Project").String()
-	putLocation := putCmd.Flag("location", "GCS KMS Location").Default("asia-northeast1").String()
-	putKeyring := putCmd.Flag("keyring", "GCS KMS Keyring").String()
-	putKeyname := putCmd.Flag("keyname", "GCS KMS Keyname").String()
-	putPath := putCmd.Flag("path", "key file path").String()
+	putBucket := putCmd.Flag("bucket", "GCS Bucket").Default(bucket).String()
+	putProjectId := putCmd.Flag("project_id", "GCS Project").Default(projectId).String()
+	putLocation := putCmd.Flag("location", "GCS KMS Location").Default(location).String()
+	putKeyring := putCmd.Flag("keyring", "GCS KMS Keyring").Default(keyring).String()
+	putKeyname := putCmd.Flag("keyname", "GCS KMS Keyname").Default(keyname).String()
+	putPath := putCmd.Arg("path", "key file path").Required().String()
 
 	var err error
 
@@ -257,8 +266,7 @@ func (c *CLI) Run(args []string) int {
 	}
 
 	if err != nil {
-		fmt.Fprintf(c.errStream, err.Error())
-		return ExitCodeError
+		fmt.Fprintf(c.errStream, err.Error() + "\n")
 	}
 
 	return ExitCodeOK

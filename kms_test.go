@@ -51,7 +51,7 @@ piyo.txt
 `
 
 	assert.Equal(t, expectStatus, status, "wrong status")
-	assert.Equal(t, expectMsg, outStream.String(), "wrong message")
+	assert.Equal(t, expectMsg, outStream.String(), "wrong message: " + errStream.String())
 }
 
 func TestRun_Get(t *testing.T) {
@@ -61,7 +61,8 @@ func TestRun_Get(t *testing.T) {
 		outStream: outStream,
 		errStream: errStream,
 	}
-	cmd := fmt.Sprintf("cloudkms get --bucket %s --project_id %s --keyring %s --keyname %s --path hoge.txt", bucket, projectId, keyring, keyname)
+	//cmd := fmt.Sprintf("cloudkms get --bucket %s --project_id %s --keyring %s --keyname %s --path hoge.txt", bucket, projectId, keyring, keyname)
+	cmd := fmt.Sprintf("cloudkms get hoge.txt --bucket %s --location asia-northeast1 --project_id %s --keyring %s --keyname %s", bucket, projectId, keyring, keyname)
 	args := strings.Split(cmd, " ")
 
 	status := cli.Run(args)
@@ -72,7 +73,7 @@ func TestRun_Get(t *testing.T) {
 	_, err := os.Stat("hoge.txt")
 
 	assert.Equal(t, expectStatus, status, "wrong status")
-	assert.Equal(t, expectMsg, outStream.String(), "wrong message")
+	assert.Equal(t, expectMsg, outStream.String(), "wrong message: " + errStream.String())
 	assert.Equal(t, nil, err, "not exists hoge.txt")
 }
 
@@ -88,7 +89,7 @@ func TestRun_Put(t *testing.T) {
 	createCmd := exec.Command("bash", "-c", "echo test > test.txt")
 	createCmd.Start()
 
-	cmd := fmt.Sprintf("cloudkms put --bucket %s --project_id %s --keyring %s --keyname %s --path hoge.txt", bucket, projectId, keyring, keyname)
+	cmd := fmt.Sprintf("cloudkms put hoge.txt --bucket %s --location asia-northeast1 --project_id %s --keyring %s --keyname %s", bucket, projectId, keyring, keyname)
 	args := strings.Split(cmd, " ")
 
 	status := cli.Run(args)
@@ -96,5 +97,5 @@ func TestRun_Put(t *testing.T) {
 	expectMsg := `Upload hoge.txt
 `
 	assert.Equal(t, expectStatus, status, "wrong status")
-	assert.Equal(t, expectMsg, outStream.String(), "wrong message")
+	assert.Equal(t, expectMsg, outStream.String(), "wrong message: " + errStream.String())
 }
