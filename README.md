@@ -1,5 +1,5 @@
 # cloudkms
-It is a command to safely manage secret key and credential file with GCS using CloudKMS.
+It is a command to safely manage secret key and credential file with GCS using GCP CloudKMS.
 
 ## Example
 ```shell
@@ -16,6 +16,8 @@ $ cloudkms put api_key.txt \
                --keyring sample-keyring \
                --keyname sample-keyring-key
 Upload api_key.txt
+
+$ rm -f api_key.txt
 
 # get key list
 $ cloudkms list --bucket keyfiles-gcs-bucket
@@ -117,3 +119,18 @@ Flags:
 Args:
   <path>  Name of the saved encryption key
 ```
+
+## Installation
+Executable binaries are available at releases.
+
+```shell
+$ wget https://github.com/morix1500/go-cloudkms/releases/download/v1.0.0/cloudkms_linux_amd64 -O cloudkms 
+$ chmod a+x cloudkms
+```
+
+## License
+Please see the [LICENSE](./LICENSE) file for details.
+
+## Author
+Shota Nishino(Morix)  
+<https://github.com/morix1500>
