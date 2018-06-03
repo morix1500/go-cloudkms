@@ -198,21 +198,18 @@ func (c *CLI) Run(args []string) int {
 	putKeyname    := putCmd.Flag("keyname", "GCS KMS Keyname").String()
 	putPath       := putCmd.Flag("path", "key file path").String()
 
+	var err error
+
 	switch kingpin.MustParse(app.Parse(args[1:])) {
 	case versionCmd.FullCommand():
 		fmt.Fprintf(c.errStream, "cloudkms %s\n", Version)
 	case listCmd.FullCommand():
 		err := c.setup(*listBucket, KeyInfo{})
-		if err != nil {
-			fmt.Fprintf(c.errStream, err.Error())
-			return ExitCodeError
-		}
+		if err != nil { break }
 
 		err = c.List()
-		if err != nil {
-			fmt.Fprintf(c.errStream, err.Error())
-			return ExitCodeError
-		}
+		if err != nil { break }
+
 	case getCmd.FullCommand():
 		keyInfo := KeyInfo{
 			ProjectId: *getProjectId,
@@ -221,15 +218,10 @@ func (c *CLI) Run(args []string) int {
 			KeyName:   *getKeyname,
 		}
 		err := c.setup(*getBucket, keyInfo)
-		if err != nil {
-			fmt.Fprintf(c.errStream, err.Error())
-			return ExitCodeError
-		}
+		if err != nil { break }
 		err = c.Get(*getPath)
-		if err != nil {
-			fmt.Fprintf(c.errStream, err.Error())
-			return ExitCodeError
-		}
+		if err != nil { break }
+
 	case putCmd.FullCommand():
 		keyInfo := KeyInfo{
 			ProjectId: *putProjectId,
@@ -238,15 +230,14 @@ func (c *CLI) Run(args []string) int {
 			KeyName:   *putKeyname,
 		}
 		err := c.setup(*putBucket, keyInfo)
-		if err != nil {
-			fmt.Fprintf(c.errStream, err.Error())
-			return ExitCodeError
-		}
+		if err != nil { break }
 		err = c.Put(*putPath)
-		if err != nil {
-			fmt.Fprintf(c.errStream, err.Error())
-			return ExitCodeError
-		}
+		if err != nil { break }
+	}
+
+	if err != nil {
+		fmt.Fprintf(c.errStream, err.Error())
+		return ExitCodeError
 	}
 
 	return ExitCodeOK
