@@ -195,26 +195,33 @@ func (c *CLI) Run(args []string) int {
 		location = "global"
 	}
 
+	bucketDesc := "Specify the GCS bucket that stores the encryption key"
+	projectIdDesc := "GCP Project ID"
+	locationDesc := "Region that stored KMS Keyring"
+	keyringDesc := "KMS Keyring"
+	keynameDesc := "KMS keyring Keyname"
+	pathDesc := "Name of the saved encryption key"
+
 	versionCmd := app.Command("version", "Print version")
 	// list
-	listCmd := app.Command("list", "Output key files")
-	listBucket := listCmd.Flag("bucket", "GCS Bucket").Default(bucket).String()
+	listCmd := app.Command("list", "Output encryption key files")
+	listBucket := listCmd.Flag("bucket", bucketDesc).Default(bucket).String()
 	// get
-	getCmd := app.Command("get", "Get key file")
-	getBucket := getCmd.Flag("bucket", "GCS Bucket").Default(bucket).String()
-	getProjectId := getCmd.Flag("project_id", "GCS Project").Default(projectId).String()
-	getLocation := getCmd.Flag("location", "GCS KMS Location").Default(location).String()
-	getKeyring := getCmd.Flag("keyring", "GCS KMS Keyring").Default(keyring).String()
-	getKeyname := getCmd.Flag("keyname", "GCS KMS Keyname").Default(keyname).String()
-	getPath := getCmd.Arg("path", "key file path").Required().String()
+	getCmd := app.Command("get", "Get encryption key file")
+	getBucket := getCmd.Flag("bucket", bucketDesc).Default(bucket).String()
+	getProjectId := getCmd.Flag("project_id", projectIdDesc).Default(projectId).String()
+	getLocation := getCmd.Flag("location", locationDesc).Default(location).String()
+	getKeyring := getCmd.Flag("keyring", keyringDesc).Default(keyring).String()
+	getKeyname := getCmd.Flag("keyname", keynameDesc).Default(keyname).String()
+	getPath := getCmd.Arg("path", pathDesc).Required().String()
 	// put
-	putCmd := app.Command("put", "Put key file")
-	putBucket := putCmd.Flag("bucket", "GCS Bucket").Default(bucket).String()
-	putProjectId := putCmd.Flag("project_id", "GCS Project").Default(projectId).String()
-	putLocation := putCmd.Flag("location", "GCS KMS Location").Default(location).String()
-	putKeyring := putCmd.Flag("keyring", "GCS KMS Keyring").Default(keyring).String()
-	putKeyname := putCmd.Flag("keyname", "GCS KMS Keyname").Default(keyname).String()
-	putPath := putCmd.Arg("path", "key file path").Required().String()
+	putCmd := app.Command("put", "Put encryption key file")
+	putBucket := putCmd.Flag("bucket", bucketDesc).Default(bucket).String()
+	putProjectId := putCmd.Flag("project_id", projectIdDesc).Default(projectId).String()
+	putLocation := putCmd.Flag("location", locationDesc).Default(location).String()
+	putKeyring := putCmd.Flag("keyring", keyringDesc).Default(keyring).String()
+	putKeyname := putCmd.Flag("keyname", keynameDesc).Default(keyname).String()
+	putPath := putCmd.Arg("path", pathDesc).Required().String()
 
 	var err error
 
